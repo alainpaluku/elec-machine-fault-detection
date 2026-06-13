@@ -139,10 +139,16 @@ python src/main.py --dataset ai4i --data-path data/ai4i_2020.csv
 
 ### Utilisation sur Kaggle
 
-Le pipeline est optimisé pour un usage sur Kaggle :
-1. Importez le fichier `notebooks/kaggle_workflow.ipynb` dans un nouveau notebook Kaggle.
-2. Le script détecte automatiquement l'environnement et génère le code C dans `/kaggle/working/random_forest_rules.c`.
-3. Vous pouvez ensuite télécharger ce fichier pour l'intégrer dans votre projet STM32CubeIDE.
+Le pipeline est optimisé pour une exécution rapide sur Kaggle via une commande unique :
+
+```bash
+# Clone, installation et exécution automatique
+!git clone https://github.com/AlainPaluku/Maintenance_Predictive_TFE.git && cd Maintenance_Predictive_TFE && bash kaggle_run.sh
+```
+
+Ou utilisez le notebook prêt à l'emploi : `notebooks/kaggle_workflow.ipynb`.
+
+[i] Le fichier généré sera disponible dans `/kaggle/working/random_forest_rules.c`.
 
 ---
 
