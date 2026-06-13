@@ -133,9 +133,16 @@ python src/main.py --dataset ai4i --data-path data/ai4i_2020.csv
 |---|---|---|
 | --dataset | Type de dataset : synthetic, ai4i | synthetic |
 | --data-path | Chemin vers le fichier de données | None |
-| --output | Chemin du fichier C généré | embedded/src/random_forest_rules.c |
+| --output | Chemin du fichier C généré | `embedded/src/random_forest_rules.c` (ou `/kaggle/working/` sur Kaggle) |
 | --n-trees | Nombre d'arbres | 10 |
 | --max-depth | Profondeur max des arbres | 10 |
+
+### Utilisation sur Kaggle
+
+Le pipeline est optimisé pour un usage sur Kaggle :
+1. Importez le fichier `notebooks/kaggle_workflow.ipynb` dans un nouveau notebook Kaggle.
+2. Le script détecte automatiquement l'environnement et génère le code C dans `/kaggle/working/random_forest_rules.c`.
+3. Vous pouvez ensuite télécharger ce fichier pour l'intégrer dans votre projet STM32CubeIDE.
 
 ---
 
