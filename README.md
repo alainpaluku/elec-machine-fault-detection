@@ -1,12 +1,12 @@
-# 🔧 Système de Maintenance Prédictive pour Machines Électriques
+# [i] Système de Maintenance Prédictive pour Machines Électriques
 
 ## Conception d'un système de maintenance prédictive pour machines électriques (moteurs/alternateurs) basé sur la fusion de données multi-capteurs et l'algorithme Random Forest
 
-> **Travail de Fin d'Études — Master 2 Génie Électrique, Électroénergétique et Systèmes Embarqués**
+> [!] Travail de Fin d'Études — Master 2 Génie Électrique, Électroénergétique et Systèmes Embarqués
 
 ---
 
-## 📋 Table des matières
+## [#] Table des matières
 
 1. [Description du projet](#description-du-projet)
 2. [Architecture du système](#architecture-du-système)
@@ -21,11 +21,11 @@
 
 ## Description du projet
 
-Ce projet implémente un système complet de **maintenance prédictive** pour les machines électriques rotatives (moteurs asynchrones, alternateurs synchrones), depuis l'acquisition des données capteurs jusqu'au déploiement embarqué sur microcontrôleur **STM32**.
+Ce projet implémente un système complet de maintenance prédictive pour les machines électriques rotatives (moteurs asynchrones, alternateurs synchrones), depuis l'acquisition des données capteurs jusqu'au déploiement embarqué sur microcontrôleur STM32.
 
 ### Problématique
 
-> *Dans quelle mesure la fusion de données multi-capteurs (vibrations, température, courant statorique) couplée à un algorithme de classification supervisée de type Random Forest, déployé sur une cible embarquée STM32, permet-elle de diagnostiquer de manière fiable et en temps réel les défauts naissants des machines électriques rotatives ?*
+> "Dans quelle mesure la fusion de données multi-capteurs (vibrations, température, courant statorique) couplée à un algorithme de classification supervisée de type Random Forest, déployé sur une cible embarquée STM32, permet-elle de diagnostiquer de manière fiable et en temps réel les défauts naissants des machines électriques rotatives ?"
 
 ### Capteurs et données fusionnées
 
@@ -35,11 +35,11 @@ Ce projet implémente un système complet de **maintenance prédictive** pour le
 | Sonde PT100 + INA125 | Température bobinage/carter | ADC (pont de Wheatstone) |
 | Capteur Hall ACS712-30A | Courant statorique | ADC |
 
-### Caractéristiques extraites
+### Caractéristiques extraites (12 features)
 
-**Domaine temporel** : RMS, Kurtosis, Facteur de crête, Skewness, Peak-to-Peak, Écart-type
-
-**Domaine fréquentiel** : FFT → Fréquence dominante, Centroïde spectral, Bande passante spectrale, Énergie spectrale
+- Domaine temporel : RMS, Kurtosis, Facteur de crête, Skewness, Peak-to-Peak, Écart-type
+- Domaine fréquentiel : FFT → Fréquence dominante, Énergie spectrale
+- Paramètres physiques : Température (°C), Courant RMS (A), Puissance estimée (W), Vitesse (RPM)
 
 ---
 
@@ -74,28 +74,25 @@ Ce projet implémente un système complet de **maintenance prédictive** pour le
 ## Structure du répertoire
 
 ```
-P_TUT/
+.
 ├── data/                          # Datasets (CSV, MAT)
-├── notebooks/                     # Jupyter notebooks exploratoires
 ├── src/                           # Pipeline Python
-│   ├── __init__.py
-│   ├── data_loader.py             # Chargement datasets (AI4I, CWRU, synthétique)
-│   ├── feature_extraction.py      # Extraction features temporelles/fréquentielles
-│   ├── model_training.py          # Random Forest + GridSearchCV
-│   ├── model_evaluation.py        # Métriques, visualisations, rapport
-│   ├── export_onnx.py             # Export ONNX pour STM32
+│   ├── features_config.py         # Configuration harmonisée (12 features)
+│   ├── data_loader.py             # Chargement datasets
+│   ├── data_processor.py          # Prétraitement et simulation
+│   ├── fault_classifier.py        # Entraînement Random Forest
+│   ├── model_evaluator.py         # Métriques et rapports
+│   ├── code_exporter.py           # Générateur de code C
 │   └── main.py                    # Pipeline orchestrateur
 ├── embedded/                      # Code embarqué STM32
 │   ├── src/
 │   │   ├── feature_compute.c/h    # Extraction features en C
 │   │   ├── rf_inference.c/h       # Inférence Random Forest en C
+│   │   ├── random_forest_rules.c  # Modèle exporté (généré)
 │   │   └── main_stm32.c           # Application principale STM32
-│   ├── stm32_config/              # Fichiers .ioc STM32CubeMX
-│   └── README.md                  # Guide d'implémentation embarquée
-├── figures/                       # Graphiques et schémas
-├── docs/memoire/                  # Chapitres LaTeX du mémoire
-├── output/                        # Résultats (modèles, rapports)
+├── notebooks/                     # Jupyter notebooks exploratoires
 ├── requirements.txt               # Dépendances Python
+├── .gitignore                     # Exclusion des fichiers temporaires
 └── README.md                      # Ce fichier
 ```
 
@@ -111,7 +108,6 @@ P_TUT/
 ### Installation des dépendances
 
 ```bash
-cd P_TUT
 pip install -r requirements.txt
 ```
 
@@ -119,111 +115,51 @@ pip install -r requirements.txt
 
 ## Utilisation
 
-### Exécution avec dataset synthétique (par défaut)
+### Exécution avec dataset synthétique (Recommandé pour test)
 
 ```bash
-python -m src.main --dataset synthetic --optimize
+python src/main.py --dataset synthetic
 ```
 
 ### Exécution avec dataset AI4I 2020
 
 ```bash
-# Télécharger le dataset depuis Kaggle :
-# https://www.kaggle.com/datasets/stephanmatzka/predictive-maintenance-dataset-ai4i-2020
-
-python -m src.main --dataset ai4i --data-path data/ai4i_2020.csv --optimize
-```
-
-### Exécution avec dataset CWRU
-
-```bash
-# Télécharger les fichiers .mat depuis :
-# https://engineering.case.edu/bearingdatacenter
-
-python -m src.main --dataset cwru --data-path data/cwru/ --optimize
-```
-
-### Exécution sur Kaggle (Recommandé)
-
-Pour exécuter le pipeline d'IA sans configuration locale et récupérer le code C final :
-
-1. Créez un nouveau Notebook Kaggle.
-2. Ajoutez le dataset cible (par ex: *Rotating Machinery Fault Monitoring Data*).
-3. Importez directement le fichier [`notebooks/kaggle_workflow.ipynb`](notebooks/kaggle_workflow.ipynb) dans votre environnement Kaggle (File > Import Notebook).
-
-Ou exécutez manuellement les cellules suivantes :
-```bash
-# 1. Cloner le dépôt GitHub (à adapter avec votre nom d'utilisateur)
-!git clone https://github.com/Ton_Nom_Utilisateur/Ton_Projet_TFE.git
-
-# 2. Se placer dans le répertoire
-%cd Ton_Projet_TFE
-
-# 3. Lancer le pipeline (les chemins Kaggle sont auto-détectés)
-!python src/main.py
-
-# 4. Afficher/Télécharger le code C généré (/kaggle/working/random_forest_rules.c)
-with open('/kaggle/working/random_forest_rules.c', 'r') as f:
-    print("".join(f.readlines()[:30]))
+python src/main.py --dataset ai4i --data-path data/ai4i_2020.csv
 ```
 
 ### Arguments
 
 | Argument | Description | Défaut |
 |---|---|---|
-| `--dataset` | Type de dataset : `synthetic`, `ai4i`, `cwru` | `synthetic` |
-| `--data-path` | Chemin vers le fichier/répertoire de données | `None` |
-| `--optimize` | Activer l'optimisation hyperparamètres (GridSearchCV) | `False` |
-| `--output-dir` | Répertoire de sortie | `./output` |
-
----
-
-## Datasets
-
-### AI4I 2020 Predictive Maintenance (recommandé)
-
-- **Source** : [Kaggle](https://www.kaggle.com/datasets/stephanmatzka/predictive-maintenance-dataset-ai4i-2020)
-- **Taille** : 10 000 échantillons
-- **Capteurs** : Température (air, process), Vitesse rotation, Couple, Usure
-- **Classes** : Normal + 5 modes de défaillance (TWF, HDF, PWF, OSF, RNF)
-
-### CWRU Bearing Dataset
-
-- **Source** : [Case Western Reserve University](https://engineering.case.edu/bearingdatacenter)
-- **Taille** : Signaux vibratoires haute fréquence (12/48 kHz)
-- **Capteurs** : Accéléromètres (Drive End, Fan End, Base)
-- **Défauts** : Bague interne, bague externe, bille
+| --dataset | Type de dataset : synthetic, ai4i | synthetic |
+| --data-path | Chemin vers le fichier de données | None |
+| --output | Chemin du fichier C généré | embedded/src/random_forest_rules.c |
+| --n-trees | Nombre d'arbres | 10 |
+| --max-depth | Profondeur max des arbres | 10 |
 
 ---
 
 ## Implémentation embarquée
 
-Voir le guide complet dans [`embedded/README.md`](embedded/README.md).
-
 ### Chaîne de déploiement
 
-```
-scikit-learn (Python) → skl2onnx → .onnx → X-CUBE-AI → Code C → STM32
-```
+- Scikit-learn (Python) → CodeExporter → Code C (if/else) → STM32CubeIDE → Flash STM32
 
 ### Cible matérielle
 
-- **Microcontrôleur** : STM32F446RE (Cortex-M4F, 180 MHz, 512 KB Flash, 128 KB RAM)
-- **Carte** : NUCLEO-F446RE
-- **IDE** : STM32CubeIDE + X-CUBE-AI expansion pack
+- Microcontrôleur : STM32F446RE (Cortex-M4F, 180 MHz)
+- Carte : NUCLEO-F446RE
+- Capteurs : ADXL345, PT100, ACS712
 
 ---
 
 ## Résultats
 
-Les résultats sont générés automatiquement dans le répertoire `output/` :
+Le pipeline génère automatiquement :
 
-- `confusion_matrix.png` — Matrice de confusion
-- `feature_importance.png` — Importance des caractéristiques (Gini)
-- `roc_curves.png` — Courbes ROC par classe
-- `learning_curve.png` — Courbe d'apprentissage
-- `evaluation_report.txt` — Rapport textuel complet
-- `random_forest_model.onnx` — Modèle exporté pour STM32
+- Rapport de performance (Précision, Rappel, F1-Score)
+- Matrice de confusion
+- Fichier `random_forest_rules.c` prêt pour l'intégration STM32
 
 ---
 
@@ -235,4 +171,4 @@ Projet académique — Travail de Fin d'Études, Master 2 Génie Électrique.
 
 ## Auteur
 
-*À compléter*
+Alain Paluku

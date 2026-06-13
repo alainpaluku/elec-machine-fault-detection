@@ -11,36 +11,39 @@ class CodeExporter:
     def export_rf_to_c(rf_model, feature_names: list, output_filename: str = "random_forest_rules.c"):
         """
         Convertit un modèle Random Forest entraîné en code C pur.
+        Le code généré utilise un tableau pour les caractéristiques d'entrée.
         """
         print(f"\n[Info] Génération du code C pour l'embarqué dans '{output_filename}'...")
         
         # Création du dossier parent s'il n'existe pas
-        os.makedirs(os.path.dirname(os.path.abspath(output_filename)), exist_ok=True)
+        output_dir = os.path.dirname(os.path.abspath(output_filename))
+        if output_dir:
+            os.makedirs(output_dir, exist_ok=True)
+
+        n_features = len(feature_names)
         
         c_code = []
         c_code.append("// Fichier généré automatiquement pour le TFE")
         c_code.append("// Modèle : Random Forest pour la Maintenance Prédictive")
-        c_code.append("// Features utilisées : " + ", ".join(feature_names))
+        c_code.append(f"// Nombre de features : {n_features}")
+        for i, name in enumerate(feature_names):
+            c_code.append(f"// [{i}] {name}")
         c_code.append("")
         c_code.append("#include <stdint.h>")
         c_code.append("")
         
-        def tree_to_c(tree, feature_names, tree_id):
+        def tree_to_c(tree, tree_id):
             tree_ = tree.tree_
-            feature_name = [
-                feature_names[i] if i != _tree.TREE_UNDEFINED else "undefined!"
-                for i in tree_.feature
-            ]
             
             lines = []
-            lines.append(f"static int predict_tree_{tree_id}(float {feature_names[0]}, float {feature_names[1]}, float {feature_names[2]}, float {feature_names[3]}) {{")
+            lines.append(f"static int predict_tree_{tree_id}(const float* features) {{")
             
             def recurse(node, depth):
                 indent = "    " * (depth + 1)
                 if tree_.feature[node] != _tree.TREE_UNDEFINED:
-                    name = feature_name[node]
+                    feat_idx = tree_.feature[node]
                     threshold = tree_.threshold[node]
-                    lines.append(f"{indent}if ({name} <= {threshold:.5f}f) {{")
+                    lines.append(f"{indent}if (features[{feat_idx}] <= {threshold:.5f}f) {{")
                     recurse(tree_.children_left[node], depth + 1)
                     lines.append(f"{indent}}} else {{")
                     recurse(tree_.children_right[node], depth + 1)
@@ -55,25 +58,29 @@ class CodeExporter:
             return "\n".join(lines)
 
         for i, estimator in enumerate(rf_model.estimators_):
-            c_code.append(tree_to_c(estimator, feature_names, i))
+            c_code.append(tree_to_c(estimator, i))
             c_code.append("")
 
         n_trees = len(rf_model.estimators_)
+        n_classes = rf_model.n_classes_
+
         c_code.append("/**")
         c_code.append(" * @brief Fonction d'inférence principale (Random Forest)")
-        c_code.append(" * @return Code de défaut : 0 (Sain), 1 (Balourd), 2 (Désalignement), 3 (Défaut stator)")
+        c_code.append(f" * @param features Tableau de {n_features} caractéristiques")
+        c_code.append(" * @return Code de défaut prédit")
         c_code.append(" */")
-        c_code.append(f"int predict_machine_state(float {feature_names[0]}, float {feature_names[1]}, float {feature_names[2]}, float {feature_names[3]}) {{")
-        c_code.append("    int votes[4] = {0, 0, 0, 0};")
+        c_code.append(f"int predict_machine_state(const float* features) {{")
+        c_code.append(f"    int votes[{n_classes}];")
+        c_code.append(f"    for (int i = 0; i < {n_classes}; i++) votes[i] = 0;")
         
         for i in range(n_trees):
-            c_code.append(f"    votes[predict_tree_{i}({feature_names[0]}, {feature_names[1]}, {feature_names[2]}, {feature_names[3]})]++;")
+            c_code.append(f"    votes[predict_tree_{i}(features)]++;")
             
         c_code.append("")
         c_code.append("    // Recherche du label ayant le maximum de votes")
         c_code.append("    int max_votes = -1;")
         c_code.append("    int best_class = -1;")
-        c_code.append("    for (int i = 0; i < 4; i++) {")
+        c_code.append(f"    for (int i = 0; i < {n_classes}; i++) {{")
         c_code.append("        if (votes[i] > max_votes) {")
         c_code.append("            max_votes = votes[i];")
         c_code.append("            best_class = i;")
