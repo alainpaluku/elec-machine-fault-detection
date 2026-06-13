@@ -143,7 +143,7 @@ Le pipeline est optimisé pour une exécution rapide sur Kaggle via une commande
 
 ```bash
 # Clone, installation et exécution automatique
-!git clone https://github.com/AlainPaluku/Maintenance_Predictive_TFE.git && cd Maintenance_Predictive_TFE && bash kaggle_run.sh
+!git clone https://github.com/alainpaluku/elec-machine-fault-detection && cd elec-machine-fault-detection && bash kaggle_run.sh
 ```
 
 Ou utilisez le notebook prêt à l'emploi : `notebooks/kaggle_workflow.ipynb`.
