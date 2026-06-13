@@ -18,17 +18,21 @@ def main():
     """
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     
-    # Détection de l'environnement
+    # Détection de l'environnement Kaggle
     is_kaggle = os.path.exists("/kaggle/working")
     
+    # Chemins par défaut
+    default_output = "/kaggle/working/random_forest_rules.c" if is_kaggle else os.path.join(base_dir, "embedded", "src", "random_forest_rules.c")
+    default_dataset = "synthetic"
+
     # Configuration des arguments
     parser = argparse.ArgumentParser(description="Pipeline de Maintenance Prédictive (TFE)")
-    parser.add_argument("--dataset", type=str, default="synthetic", choices=["synthetic", "ai4i"],
+    parser.add_argument("--dataset", type=str, default=default_dataset, choices=["synthetic", "ai4i"],
                         help="Type de dataset à utiliser")
     parser.add_argument("--data-path", type=str, default=None,
                         help="Chemin vers le fichier CSV (pour ai4i)")
     parser.add_argument("--output", type=str, 
-                        default=os.path.join(base_dir, "embedded", "src", "random_forest_rules.c"),
+                        default=default_output,
                         help="Chemin de sortie pour le code C généré")
     parser.add_argument("--n-trees", type=int, default=10,
                         help="Nombre d'arbres pour le Random Forest")
