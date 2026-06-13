@@ -1,14 +1,16 @@
+# -*- coding: utf-8 -*-
 import os
 import sys
 import argparse
 
-# Ajout du répertoire src au sys.path si nécessaire pour les imports
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+# Ajout du répertoire src au sys.path
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from data_processor import DataProcessor
-from fault_classifier import FaultClassifier
-from model_evaluator import ModelEvaluator
-from code_exporter import CodeExporter
+from src.data_processor import DataProcessor
+from src.fault_classifier import FaultClassifier
+from src.model_evaluator import ModelEvaluator
+from src.code_exporter import CodeExporter
+from src.features_config import FAULT_CLASSES
 
 def main():
     """
@@ -16,58 +18,55 @@ def main():
     """
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     
-    # Détection automatique de l'environnement Kaggle
-    kaggle_data_path = "/kaggle/input/rotating-machinery-fault-monitoring-data/rotating_machinery_data.csv"
-    kaggle_output_path = "/kaggle/working/random_forest_rules.c"
+    # Détection de l'environnement
     is_kaggle = os.path.exists("/kaggle/working")
     
-    default_data = kaggle_data_path if is_kaggle else os.path.join(base_dir, "data", "rotating_machinery_data.csv")
-    default_output = kaggle_output_path if is_kaggle else os.path.join(base_dir, "embedded", "random_forest_rules.c")
-    
-    if is_kaggle:
-        print("[Info] Environnement Kaggle détecté. Configuration automatique des chemins de données et de sortie.")
-    
-    # Configuration des arguments de ligne de commande
+    # Configuration des arguments
     parser = argparse.ArgumentParser(description="Pipeline de Maintenance Prédictive (TFE)")
-    parser.add_argument("--data", type=str, 
-                        default=default_data,
-                        help="Chemin vers le fichier CSV de données")
+    parser.add_argument("--dataset", type=str, default="synthetic", choices=["synthetic", "ai4i"],
+                        help="Type de dataset à utiliser")
+    parser.add_argument("--data-path", type=str, default=None,
+                        help="Chemin vers le fichier CSV (pour ai4i)")
     parser.add_argument("--output", type=str, 
-                        default=default_output,
+                        default=os.path.join(base_dir, "embedded", "src", "random_forest_rules.c"),
                         help="Chemin de sortie pour le code C généré")
+    parser.add_argument("--n-trees", type=int, default=10,
+                        help="Nombre d'arbres pour le Random Forest")
+    parser.add_argument("--max-depth", type=int, default=10,
+                        help="Profondeur maximale des arbres")
     
     args = parser.parse_args()
     
-    csv_file = args.data
-    output_c_file = args.output
-    
-    print("="*50)
-    print(" PIPELINE DE MAINTENANCE PRÉDICTIVE (TFE)")
-    print("="*50)
+    print("="*60)
+    print("   PIPELINE DE MAINTENANCE PRÉDICTIVE - SYSTÈMES TOURNANTS")
+    print("="*60)
+    print(f"[Config] Dataset : {args.dataset}")
+    print(f"[Config] Modèle  : Random Forest (n={args.n_trees}, depth={args.max_depth})")
 
     # 1. Préparation des données
-    processor = DataProcessor(filepath=csv_file)
+    processor = DataProcessor(dataset_type=args.dataset, filepath=args.data_path)
     X_train, X_test, y_train, y_test = processor.load_and_preprocess()
     
     if X_train is None:
-        print("\n[!] Vérifiez que le fichier de données existe à l'emplacement indiqué :", csv_file)
         return
 
-    # 2. Entraînement du modèle (Hyperparamètres contraints)
-    classifier = FaultClassifier(n_estimators=10, max_depth=5)
+    # 2. Entraînement
+    classifier = FaultClassifier(n_estimators=args.n_trees, max_depth=args.max_depth)
     classifier.fit(X_train, y_train)
     
     # 3. Évaluation
-    # On trie les clés du dictionnaire pour avoir [Sain, Balourd, Désalignement, Défaut stator]
-    target_names = [k for k, v in sorted(processor.label_mapping.items(), key=lambda item: item[1])]
-    ModelEvaluator.evaluate(classifier.model, X_test, y_test, target_names)
+    ModelEvaluator.evaluate(classifier.model, X_test, y_test, FAULT_CLASSES)
     
     # 4. Exportation en C
     CodeExporter.export_rf_to_c(
         rf_model=classifier.model, 
         feature_names=processor.features, 
-        output_filename=output_c_file
+        output_filename=args.output
     )
+
+    print("="*60)
+    print("   PIPELINE TERMINÉ AVEC SUCCÈS")
+    print("="*60)
 
 if __name__ == "__main__":
     main()
